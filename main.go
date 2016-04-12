@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"time"
+    "strings"
 
 	"github.com/google/go-github/github"
 )
@@ -37,42 +38,64 @@ func getclient() int {
 			}
 		}
 	}
-
+    return 0
+}
 	//
-	commitopts := &github.CommitsListOptions{Path: reno, Since: time.Time}
-	time.Duration(Hour)
-	lastcommit, err := GetLatestCommit("openstack", "nova", client, commitopts)
+
+func GetReNo(repo string) int{
+	client := github.NewClient(nil)
+    k := time.Now()
+    d, _ := time.ParseDuration("-240h")
+	commitopts := &github.CommitsListOptions{Path: reno, Since: k.Add(d)}
+
+	lastcommits, err := GetLatestCommit("openstack", repo, client, commitopts)
 	if err != nil {
 		return -1
 	}
-	fmt.Println(lastcommit)
-
-	respcommit, res, err := client.Repositories.GetCommit("openstack", "nova", lastcommit)
-	if err != nil {
-		log.Printf("err: %s res: %s", err, res)
-		return -1
-	}
-	for f := range respcommit.Files {
-		fmt.Println(*respcommit.Files[f].Filename)
-
-	}
-
+	fmt.Println(lastcommits)
+    for f := range lastcommits {
+        GetCommitDetail(client, repo, lastcommits[f])
+    }
 	return 0
 }
 
-func GetLatestCommit(owner, repo string, sgc *github.Client, opts *github.CommitsListOptions) (string, error) {
+func GetCommitDetail(sgc *github.Client, repo, sha string) {
+	respcommit, res, err := sgc.Repositories.GetCommit("openstack", repo, sha)
+	if err != nil {
+		log.Printf("err: %s res: %s", err, res)
+	}
+	for f := range respcommit.Files {
+        fn := *respcommit.Files[f].Filename
+        if strings.Contains(fn, "releasenotes/") {
+            fmt.Println(sha, fn)
+        }
+	}
+}
+
+func GetLatestCommit(owner, repo string, sgc *github.Client, opts *github.CommitsListOptions) ([]string, error) {
 	commits, res, err := sgc.Repositories.ListCommits(owner, repo, opts)
+
+    var comms []string
 
 	if err != nil {
 		log.Printf("err: %s res: %s", err, res)
-		return "", err
+		return comms, err
 	}
 
-	log.Printf("last commit: %s", *commits[0].SHA)
 
-	return *commits[0].SHA, nil
+	log.Printf("last commit length is: %d", len(commits))
+
+    if len(commits) > 0 {
+        for c := range commits {
+	        log.Printf("commit : %s", *commits[c].SHA)
+            comms = append(comms, *commits[c].SHA)
+        }
+    }
+    return comms, nil
 }
 
 func main() {
-	fmt.Println(getclient())
+//    fmt.Println(os.Args[1])
+//  args 1 is repo name
+	fmt.Println(GetReNo(os.Args[1]))
 }
