@@ -1,2 +1,3 @@
 1. Authenticated requests get a higher rate limit.
 2. Find out why commit sha not work with CommitsListOptions
+3. Split main.go to packages
