@@ -5,7 +5,7 @@ fetch_reno will fetch reno of openstack project
 build
 ------
 1. install golang
-2. go build main.go
+2. go build fetchreno.go
 
 
 configure
@@ -31,7 +31,7 @@ for example ::
 
 or
 
-./main nova 1 #will show update notes of recent 1 day
+./fetchreno nova 1 #will show update notes of recent 1 day
 
 
 

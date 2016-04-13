@@ -9,5 +9,5 @@ if [ -f "${LOG_FILE}" ]; then
 fi
 
 for item in ${PROJS[@]}; do
-    ./main "${item}" >> "${LOG_FILE}"
+    ./fetchreno "${item}" >> "${LOG_FILE}"
 done
