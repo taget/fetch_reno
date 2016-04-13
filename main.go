@@ -64,30 +64,45 @@ func getclient() int {
 }
 
 //GetReNo get reno by sepcify a period , return last commit of reno dir
-func GetReNo(client *github.Client, repo, lastcommit string) (string, error) {
+func GetReNo(client *github.Client, repo, lastcommit string) (string, time.Time, error) {
 
-	k := time.Now()
-	d, _ := time.ParseDuration(Period)
 	var commitopts *github.CommitsListOptions
-	log.Println("Time period: ", k.Add(d), k)
+    var since, current time.Time
 
 	if len(lastcommit) > 0 {
-		fmt.Println("----------lastcommit--------")
-		fmt.Println(lastcommit)
-		commitopts = &github.CommitsListOptions{Path: Reno, SHA: lastcommit}
+        //fixme (eliqiao) passing lastcommit to commitopts doesn't work at all
+        //commitopts = &github.CommitsListOptions{Path: Reno, SHA: lastcommit}
+        //get commit's commiter date
+	    respcommit, _ , err := client.Repositories.GetCommit("openstack", repo, lastcommit)
+        check(err)
+        since = *respcommit.Commit.Committer.Date
+        // incrence 1s to avoid get current commit
+	    d, _ := time.ParseDuration("1s")
+        since = since.Add(d)
 	} else {
-		commitopts = &github.CommitsListOptions{Path: Reno, Since: k.Add(d)}
+		current = time.Now()
+	    d, _ := time.ParseDuration(Period)
+        since = current.Add(d)
 	}
-	fmt.Println(*commitopts)
+
+	log.Println("Time period: ", since, current)
+
+	commitopts = &github.CommitsListOptions{Path: Reno, Since: since}
+
 	lastcommits, err := GetLatestCommit("openstack", repo, client, commitopts)
 	if err != nil {
-		return "", err
+		return lastcommit, since, err
 	}
 
 	for f := range lastcommits {
 		GetCommitDetail(client, repo, lastcommits[f])
 	}
-	return lastcommits[0], nil
+
+    if len(lastcommits) > 0 {
+        return lastcommits[0], since, nil
+
+    }
+    return lastcommit, since, nil
 }
 
 //GetCommitDetail get commit details of a repo by specify SHA
@@ -142,7 +157,7 @@ func GetOldSHA(filename string) string {
 		sha := make([]byte, 100)
 		sha, err = ioutil.ReadFile(filename)
 		check(err)
-		return string(sha)
+		return strings.Replace(string(sha), "\n", "", -1)
 	}
 	return ""
 }
@@ -175,14 +190,13 @@ func main() {
 	oldshafile := TmpFileDir + repo
 
 	lastcommit := GetOldSHA(oldshafile)
-	newsha, err := GetReNo(client, os.Args[1], lastcommit)
+	newsha, since, err := GetReNo(client, os.Args[1], lastcommit)
 	check(err)
-	fmt.Println("newsha")
-	fmt.Println(newsha)
 	err = WriteNewSHA(oldshafile, newsha)
 	check(err)
 
-	fmt.Println("------------------------")
+	fmt.Printf("------------------------------------[updates releasenotes for %s]---------------------------------\n", repo)
+	fmt.Printf("---------[from %s to %s ]---------\n", since, time.Now())
 	for re := range myRenos {
 		fmt.Println(*myRenos[re].FileName)
 		fmt.Println(string(*myRenos[re].FileContent))
