@@ -71,4 +71,6 @@ of a $repo
 know issues
 -----------
 some time git hub will return 403 because we don't use authory mode. server
-refused us.
+refused us ::
+
+Authenticated requests get a higher rate limit
