@@ -22,9 +22,18 @@ keystone
 
 run
 ---
-./get_reno.sh
-
+./get_reno.sh <day> # to get release notes of repos in proj.txt in <day> days
 reno update results will be saved into a txt file named as today.
+
+for example ::
+
+2016年04月13日
+
+or
+
+./main nova 1 #will show update notes of recent 1 day
+
+
 
 notes
 -----

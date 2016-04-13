@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"time"
+    "strconv"
 
 	"github.com/google/go-github/github"
 )
@@ -178,18 +179,35 @@ func Init() {
 	//Igonre errors
 	os.Mkdir(TmpFileDir, 0777)
 }
+
+//
+
+
 func main() {
 	//args 1 is repo name
 	if len(os.Args) < 2 {
-		fmt.Println("You need to specify repo name, for example : `nova`")
+		fmt.Println("You need to specify repo name, for example : `nova` <option days>")
 		os.Exit(1)
 	}
-	Init()
-	client := github.NewClient(nil)
+
 	repo := os.Args[1]
 	oldshafile := TmpFileDir + repo
 
+    if len(os.Args) > 1 {
+        day, err := strconv.Atoi(os.Args[2])
+        if err != nil {
+		    fmt.Println("You need to specify repo name, for example : `nova` <option days>")
+		    os.Exit(1)
+        }
+        Period = "-" + strconv.Itoa(day * 24) + "h"
+        // remove cookie
+        os.Remove(oldshafile)
+    }
+	Init()
+    client := github.NewClient(nil)
+
 	lastcommit := GetOldSHA(oldshafile)
+
 	newsha, since, err := GetReNo(client, os.Args[1], lastcommit)
 	check(err)
 	err = WriteNewSHA(oldshafile, newsha)
