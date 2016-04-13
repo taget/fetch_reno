@@ -1,0 +1,7 @@
+nova
+neutron
+magnum
+cinder
+glance
+ironic
+keystone
