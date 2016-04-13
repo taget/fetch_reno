@@ -181,8 +181,6 @@ func Init() {
 }
 
 //
-
-
 func main() {
 	//args 1 is repo name
 	if len(os.Args) < 2 {
@@ -193,7 +191,7 @@ func main() {
 	repo := os.Args[1]
 	oldshafile := TmpFileDir + repo
 
-    if len(os.Args) > 1 {
+    if len(os.Args) > 2 {
         day, err := strconv.Atoi(os.Args[2])
         if err != nil {
 		    fmt.Println("You need to specify repo name, for example : `nova` <option days>")
