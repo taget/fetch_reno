@@ -11,6 +11,7 @@ import (
     "strconv"
 
 	"github.com/google/go-github/github"
+    "github.com/BurntSushi/toml"
 )
 
 //RenoStruct stands for a Reno
@@ -19,6 +20,12 @@ type RenoStruct struct {
 	Type        int
 	FileContent *[]byte
 	FileName    *string
+}
+
+//Info from config file
+type Config struct {
+    ClientID     string
+    ClientSecret string
 }
 
 var (
@@ -31,6 +38,7 @@ var (
 	myRenos = []RenoStruct{}
 	//TmpFileDir to keep old SHA
 	TmpFileDir = ".data/"
+    Conf       = "./conf"
 )
 
 func check(e error) {
@@ -39,29 +47,28 @@ func check(e error) {
 	}
 }
 
-func getclient() int {
-	client := github.NewClient(nil)
-	var allRepos []github.Repository
-	listopts := github.ListOptions{Page: 1, PerPage: 10000}
-	opt := &github.RepositoryListByOrgOptions{Type: "all", ListOptions: listopts}
+//ReadConfig read from conf
+func ReadConfig() (Config, error){
+    var config Config
+    if _, err := toml.DecodeFile(Conf, &config); err != nil {
+        log.Fatal(err)
+        return config, err
+    }
+    return config, nil
+}
 
-	repos, _, err := client.Repositories.ListByOrg("openstack", opt)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	num := 0
-	for i := range repos {
-		for r := range myRepos {
-			if myRepos[r] == *repos[i].Name {
-				num++
-				fmt.Println(num)
-				fmt.Println(*repos[i].Name)
-				allRepos = append(allRepos, repos[i])
-			}
-		}
-	}
-	return 0
+func getclient() *github.Client {
+    conf, err := ReadConfig()
+
+    if (err != nil) || (len(conf.ClientID) == 0) || (len(conf.ClientSecret) == 0) {
+        return github.NewClient(nil)
+    }
+
+    t := &github.UnauthenticatedRateLimitedTransport{
+            ClientID:     conf.ClientID,
+            ClientSecret: conf.ClientSecret,
+    }
+    return github.NewClient(t.Client())
 }
 
 //GetReNo get reno by sepcify a period , return last commit of reno dir
@@ -203,11 +210,7 @@ func main() {
     }
 	Init()
 
-    t := &github.UnauthenticatedRateLimitedTransport{
-            ClientID:     "185fb8d55aaa39a17fb6",
-            ClientSecret: "7cb939c138e1d50bc728d89944db5a304785f3e1",
-    }
-    client := github.NewClient(t.Client())
+    client := getclient()
 
 	lastcommit := GetOldSHA(oldshafile)
 
