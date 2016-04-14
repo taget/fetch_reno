@@ -202,7 +202,12 @@ func main() {
         os.Remove(oldshafile)
     }
 	Init()
-    client := github.NewClient(nil)
+
+    t := &github.UnauthenticatedRateLimitedTransport{
+            ClientID:     "185fb8d55aaa39a17fb6",
+            ClientSecret: "7cb939c138e1d50bc728d89944db5a304785f3e1",
+    }
+    client := github.NewClient(t.Client())
 
 	lastcommit := GetOldSHA(oldshafile)
 
