@@ -30,7 +30,6 @@ type Config struct {
 }
 
 var (
-	myRepos = []string{"nova", "neutron"}
 	//Reno path
 	Reno = "releasenotes/notes"
 	//Period is the period time from now
