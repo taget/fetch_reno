@@ -3,6 +3,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -18,7 +19,7 @@ import (
 type RenoStruct struct {
 	SHA         *string
 	Type        int
-	FileContent *[]byte
+	FileContent []byte
 	FileName    *string
 }
 
@@ -129,11 +130,8 @@ func GetCommitDetail(sgc *github.Client, repo, sha string) {
 				log.Printf("err: %s res: %s", err, res)
 				continue
 			}
-			//fixme 2000 seems is not enough
-			p := make([]byte, 2000)
-			r.Read(p)
-			r.Close()
-			myRenos = append(myRenos, RenoStruct{SHA: &sha, Type: 1, FileName: &fn, FileContent: &p})
+
+			myRenos = append(myRenos, RenoStruct{SHA: &sha, Type: 1, FileName: &fn, FileContent: ReadFromContent(r)})
 		}
 	}
 }
@@ -158,6 +156,18 @@ func GetLatestCommit(owner, repo string, sgc *github.Client, opts *github.Commit
 		}
 	}
 	return comms, nil
+}
+
+//ReadFromContent will read string from io readcloser
+func ReadFromContent(r io.ReadCloser) []byte {
+	//fixme 2000 seems is enough
+	p := make([]byte, 2000)
+	n, err := r.Read(p)
+	if err != nil {
+		log.Printf("Error while reading content : %s", err)
+		return p[:1]
+	}
+	return p[:n]
 }
 
 //GetOldSHA to get last SHA, else return empty
@@ -224,6 +234,6 @@ func main() {
 	fmt.Printf("---------[from %s to %s ]---------\n", since, time.Now())
 	for re := range myRenos {
 		fmt.Println(*myRenos[re].FileName)
-		fmt.Println(string(*myRenos[re].FileContent))
+		fmt.Println(string(myRenos[re].FileContent))
 	}
 }
