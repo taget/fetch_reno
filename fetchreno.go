@@ -6,12 +6,12 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
-    "strconv"
 
+	"github.com/BurntSushi/toml"
 	"github.com/google/go-github/github"
-    "github.com/BurntSushi/toml"
 )
 
 //RenoStruct stands for a Reno
@@ -22,10 +22,10 @@ type RenoStruct struct {
 	FileName    *string
 }
 
-//Info from config file
+//Config Info from config file
 type Config struct {
-    ClientID     string
-    ClientSecret string
+	ClientID     string
+	ClientSecret string
 }
 
 var (
@@ -38,7 +38,8 @@ var (
 	myRenos = []RenoStruct{}
 	//TmpFileDir to keep old SHA
 	TmpFileDir = ".data/"
-    Conf       = "./conf"
+	//Conf default configure file
+	Conf = "./conf"
 )
 
 func check(e error) {
@@ -48,49 +49,49 @@ func check(e error) {
 }
 
 //ReadConfig read from conf
-func ReadConfig() (Config, error){
-    var config Config
-    if _, err := toml.DecodeFile(Conf, &config); err != nil {
-        log.Fatal(err)
-        return config, err
-    }
-    return config, nil
+func ReadConfig() (Config, error) {
+	var config Config
+	if _, err := toml.DecodeFile(Conf, &config); err != nil {
+		log.Fatal(err)
+		return config, err
+	}
+	return config, nil
 }
 
 func getclient() *github.Client {
-    conf, err := ReadConfig()
+	conf, err := ReadConfig()
 
-    if (err != nil) || (len(conf.ClientID) == 0) || (len(conf.ClientSecret) == 0) {
-        return github.NewClient(nil)
-    }
+	if (err != nil) || (len(conf.ClientID) == 0) || (len(conf.ClientSecret) == 0) {
+		return github.NewClient(nil)
+	}
 
-    t := &github.UnauthenticatedRateLimitedTransport{
-            ClientID:     conf.ClientID,
-            ClientSecret: conf.ClientSecret,
-    }
-    return github.NewClient(t.Client())
+	t := &github.UnauthenticatedRateLimitedTransport{
+		ClientID:     conf.ClientID,
+		ClientSecret: conf.ClientSecret,
+	}
+	return github.NewClient(t.Client())
 }
 
 //GetReNo get reno by sepcify a period , return last commit of reno dir
 func GetReNo(client *github.Client, repo, lastcommit string) (string, time.Time, error) {
 
 	var commitopts *github.CommitsListOptions
-    var since, current time.Time
+	var since, current time.Time
 
 	if len(lastcommit) > 0 {
-        //fixme (eliqiao) passing lastcommit to commitopts doesn't work at all
-        //commitopts = &github.CommitsListOptions{Path: Reno, SHA: lastcommit}
-        //get commit's commiter date
-	    respcommit, _ , err := client.Repositories.GetCommit("openstack", repo, lastcommit)
-        check(err)
-        since = *respcommit.Commit.Committer.Date
-        // incrence 1s to avoid get current commit
-	    d, _ := time.ParseDuration("1s")
-        since = since.Add(d)
+		//fixme (eliqiao) passing lastcommit to commitopts doesn't work at all
+		//commitopts = &github.CommitsListOptions{Path: Reno, SHA: lastcommit}
+		//get commit's commiter date
+		respcommit, _, err := client.Repositories.GetCommit("openstack", repo, lastcommit)
+		check(err)
+		since = *respcommit.Commit.Committer.Date
+		// incrence 1s to avoid get current commit
+		d, _ := time.ParseDuration("1s")
+		since = since.Add(d)
 	} else {
 		current = time.Now()
-	    d, _ := time.ParseDuration(Period)
-        since = current.Add(d)
+		d, _ := time.ParseDuration(Period)
+		since = current.Add(d)
 	}
 
 	log.Println("Time period: ", since, current)
@@ -106,11 +107,11 @@ func GetReNo(client *github.Client, repo, lastcommit string) (string, time.Time,
 		GetCommitDetail(client, repo, lastcommits[f])
 	}
 
-    if len(lastcommits) > 0 {
-        return lastcommits[0], since, nil
+	if len(lastcommits) > 0 {
+		return lastcommits[0], since, nil
 
-    }
-    return lastcommit, since, nil
+	}
+	return lastcommit, since, nil
 }
 
 //GetCommitDetail get commit details of a repo by specify SHA
@@ -198,19 +199,19 @@ func main() {
 	repo := os.Args[1]
 	oldshafile := TmpFileDir + repo
 
-    if len(os.Args) > 2 {
-        day, err := strconv.Atoi(os.Args[2])
-        if err != nil {
-		    fmt.Println("You need to specify repo name, for example : `nova` <option days>")
-		    os.Exit(1)
-        }
-        Period = "-" + strconv.Itoa(day * 24) + "h"
-        // remove cookie
-        os.Remove(oldshafile)
-    }
+	if len(os.Args) > 2 {
+		day, err := strconv.Atoi(os.Args[2])
+		if err != nil {
+			fmt.Println("You need to specify repo name, for example : `nova` <option days>")
+			os.Exit(1)
+		}
+		Period = "-" + strconv.Itoa(day*24) + "h"
+		// remove cookie
+		os.Remove(oldshafile)
+	}
 	Init()
 
-    client := getclient()
+	client := getclient()
 
 	lastcommit := GetOldSHA(oldshafile)
 
